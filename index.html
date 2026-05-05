@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+    <!-- load the graph -->
+    <!-- some simple css to make it look nice, colours,  hovers, font, others -->
+
+<head>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+
+        body {
+            font-family: 'Times New Roman', serif;
+            background: #f0f4f8;
+            color: #333;
+            padding: 30px;
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            color: #2c3e50;
+            border-bottom: 3px solid #2b67c0;
+            padding-bottom: 10px;
+            display: inline-block;
+        }
+
+        h3 {
+            color: #2c3e50;
+            margin-top: 25px;
+        }
+
+        p {
+            color: #555;
+            line-height: 1.8;
+        }
+
+        label {
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: #444;
+            margin-right: 5px;
+        }
+
+        select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin-right: 20px;
+        }
+
+        select:hover {
+            border-color: #2b67c0;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #2b67c0;
+        }
+
+        .controls {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        #chart {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 10px;
+        }
+
+        .insights {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 15px 20px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <!-- title, then call the data range -->
+
+<h2>COVID-19 Data</h2>
+
+<p>Date Range: {{ date_range }}</p>
+
+<!-- create the dropdown menus for country and then metric -->
+<label>Country:</label>
+<select id="country">
+    {% for c in countries %}
+        <option value="{{ c }}">{{ c }}</option>
+    {% endfor %}
+</select>
+
+<label>Metric:</label>
+<select id="metric">
+    <option value="new_cases">New Cases</option>
+    <option value="new_vaccinations">Vaccinations</option>
+</select>
+
+<!-- create the container for the graph to go -->
+<div id="chart"></div>
+<p style="font-size: 0.9rem; color: #666; margin-top: 5px;">
+    Figure: Daily COVID-19 values (dotted) vs 7-day rolling average (solid). Data cleaned by capping extreme spikes.
+</p>
+<h3>Insights</h3>
+<p>
+- Spikes in the data have been mitigated by removing data points greater than 3 standard deviation<br>
+- Using the rolling average we can see easily trends in the data<br>
+- Correlation does not mean causation<br>
+- dotted line for the daily numbers because they are much more erratic, giving the focus onto the average<br>
+- Trends in all countries is that cases rise during the hotter months, and fall during the colder months<br>
+- Rises and falls are based on contraction rates in warmer times vs colder<br>
+- Could also be the rates at which people are reporting the sickness in the months vs not<br>
+- As for vaccinations we see a large rise starting in 2021, up to 2023, then a rise again in 2024<br>
+- Likely due to the population getting booster shots or some other factor
+</p>
+
+<script>
+    //anytime the dropdown changes, or initial loading
+    // load the data: country, metric
+    async function loadData() {
+        const country = document.getElementById("country").value;
+        const metric = document.getElementById("metric").value;
+
+        // turns new_cases into "New Cases" for the title
+        const metricLabel = metric === 'new_cases' ? 'New Cases' : 'New Vaccinations';
+
+        // create the request for the data
+        // then convert the request to json
+        const req = await fetch(`/data?country=${country}&metric=${metric}`);
+        const data = await req.json();
+
+        //use plotly to create the chart
+        // line chart, with cases for each first day of the month
+        Plotly.newPlot("chart", [
+            {
+                x: data.date,
+                y: data[metric],
+                mode: "lines",
+                name: "Daily",
+                line: {
+                    color: '#2b67c0',
+                    width: 1,
+                    dash: 'dot'
+                }
+            },
+            {
+                x: data.date,
+                y: data.rolling,
+                mode: "lines",
+                name: "Rolling Average",
+                line: {
+                    color: '#319a5b',
+                    width: 3
+                }
+            }
+        ], {
+            title: `COVID-19 ${metricLabel} — ${country}`,
+            xaxis: {
+                title: 'Date',
+                showgrid: false
+            },
+            yaxis: {
+                title: 'Number of People',
+                rangemode: 'tozero'
+            },
+            legend: {
+                orientation: 'h',
+                y: -0.2
+            },
+        });
+    }
+
+
+//whenever a change in the dropdown is detected call load data
+document.getElementById("country").onchange = loadData;
+document.getElementById("metric").onchange = loadData;
+
+//load the data for the initial time
+loadData();
+</script>
+
+</body>
+</html>
