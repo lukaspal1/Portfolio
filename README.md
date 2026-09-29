@@ -1,5 +1,5 @@
 # Portfolio
-My projects, school mostly
+School Projects Mostly
 Classes I have taken:
 
 Computer Science & Software Engineering
